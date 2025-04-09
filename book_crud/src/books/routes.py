@@ -34,7 +34,7 @@ async def add_book(book: Book):
     book_dict["_id"] = str(result.inserted_id)
     return book_dict
 
-@book_router.patch('/books/{book_id}')
+@book_router.patch('/books/{book_id}', response_model=Book)
 async def update_book(book_id: str, title: Optional[str] = None, author: Optional[str] = None, publisher: Optional[str] = None, published_date: Optional[date] = None, page_count: Optional[int] = None, language: Optional[str] = None):
     update_data = {}
     if title is not None:
@@ -53,7 +53,12 @@ async def update_book(book_id: str, title: Optional[str] = None, author: Optiona
     result = await book_collection.update_one({"_id": ObjectId(book_id)}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Book not found")
-    return {"message": "Book Updated Succesfully"}
+    
+    # Query the updated book and return it
+    updated_book = await book_collection.find_one({"_id": ObjectId(book_id)})
+    updated_book["id"] = str(updated_book["_id"])
+    del updated_book["_id"]
+    return updated_book
 
 @book_router.delete('/books/{book_id}')
 async def delete_book(book_id: str):
