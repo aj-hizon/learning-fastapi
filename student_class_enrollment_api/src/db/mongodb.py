@@ -1,7 +1,6 @@
 import motor.motor_asyncio
 from dotenv import load_dotenv
 import os
-import asyncio
 
 load_dotenv()
 
