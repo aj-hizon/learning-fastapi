@@ -4,12 +4,12 @@ from pydantic import BaseModel
 from typing import List
 from fastapi import HTTPException
 from typing import Optional
-
+    
 class Student(BaseModel):
-    studentId: int
-    firstName: str
+    studentId: Optional[str] 
+    firstName: str 
     lastName: str
-    section: str = None
+    section: Optional[str] = None
 
 class Students(BaseModel):
     students: List[Student]
@@ -42,6 +42,7 @@ async def update_student(studentId: int, firstName: Optional[str] = None, lastNa
         return {"message": "Student Information Update Succesfully", "student": student}
     raise HTTPException(status_code=404, detail="Student not found")
     
+
 @app.delete('/students/{studentId}')
 async def delete_student(studentId: int):
     for student in memory_db["Students"]: 
