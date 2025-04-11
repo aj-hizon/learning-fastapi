@@ -31,4 +31,3 @@ try:
     classes_collection = database[CLASSES_COLLECTION]
 except Exception as e:
     raise RuntimeError(f"Failed to connect to MongoDB: {str(e)}")
-   

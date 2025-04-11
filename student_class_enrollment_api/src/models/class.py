@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class Class(BaseModel):
     title: str
@@ -9,3 +9,9 @@ class Class(BaseModel):
     
 class Classes(BaseModel):
     classes: List[Class]
+
+class ClassUpdate(BaseModel):
+    title: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    instructor: Optional[str] = None
