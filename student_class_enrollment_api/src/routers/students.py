@@ -7,7 +7,6 @@ from bson.errors import InvalidId
 from typing import Optional, List
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 student_router = APIRouter()
