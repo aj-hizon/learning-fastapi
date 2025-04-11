@@ -9,11 +9,26 @@ DATABASE = os.getenv("DATABASE")
 STUDENTS_COLLECTION = os.getenv("STUDENTS_COLLECTION")
 CLASSES_COLLECTION = os.getenv("CLASSES_COLLECTION")
 
-if not MONGODB_URI:
-    raise ValueError("MONGODB_URI is not set in the environment variables")
+if not all([MONGODB_URI, STUDENTS_COLLECTION, CLASSES_COLLECTION]):
+    raise ValueError("One or more required environment variables are not set")
 
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
+_client = None
 
-database = client[DATABASE]
-students_collection = database[STUDENTS_COLLECTION]
-classes_collection = database[CLASSES_COLLECTION]
+def get_client():
+    global _client
+    if _client is None:
+        _client = motor.motor_asyncio.AsyncIOMotorClient(
+            MONGODB_URI,
+            serverSelectionTimeoutMS=5000,
+            retryWrites=True
+            )
+    return _client
+
+try: 
+    client = get_client()
+    database = client[DATABASE]
+    students_collection = database[STUDENTS_COLLECTION]
+    classes_collection = database[CLASSES_COLLECTION]
+except Exception as e:
+    raise RuntimeError(f"Failed to connect to MongoDB: {str(e)}")
+   
