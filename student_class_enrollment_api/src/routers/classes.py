@@ -39,8 +39,8 @@ async def get_class(class_id: str) -> Class:
 
     try:
         result = await classes_collection.find_one({"_id": object_id})
-        logger.error(f"Class with Class ID {object_id} not found")
         if not result:
+            logger.error(f"Class with Class ID {object_id} not found")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Class with ID: {object_id} not found"
