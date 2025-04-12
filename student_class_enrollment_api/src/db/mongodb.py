@@ -1,6 +1,8 @@
+import os
+
+from fastapi import Depends
 import motor.motor_asyncio
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -31,3 +33,10 @@ try:
     classes_collection = database[CLASSES_COLLECTION]
 except Exception as e:
     raise RuntimeError(f"Failed to connect to MongoDB: {str(e)}")
+
+
+def get_students_collection():
+    return students_collection
+
+def get_classes_collection():
+    return classes_collection

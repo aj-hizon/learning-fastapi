@@ -1,20 +1,22 @@
 import logging
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Depends, status
 from pymongo.errors import PyMongoError, DuplicateKeyError
 from bson.errors import InvalidId
 from bson import ObjectId
 
 from src.models.classes import Class, Classes, ClassUpdate
-from src.db.mongodb import classes_collection
+from src.db.mongodb import get_classes_collection
 
 logger = logging.getLogger(__name__)
 
 class ClassService: 
-    @staticmethod
-    async def get_all_class(skip: int = 0, limit: int = 10) -> Classes:
+    def __init__(self, collection=Depends(get_classes_collection)):
+        self.collection = collection 
+
+    async def get_all_class(self, skip: int = 0, limit: int = 10) -> Classes:
         try:
-            classes = await classes_collection.find().skip(skip).limit(limit).to_list(length=100)
+            classes = await self.collection.find().skip(skip).limit(limit).to_list(length=100)
             if not classes:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -28,8 +30,7 @@ class ClassService:
                 detail="An error occurred while fetching classes"
             )
     
-    @staticmethod
-    async def get_class_by_id(class_id: str) -> Class:
+    async def get_class_by_id(self, class_id: str) -> Class:
         try:
             object_id = ObjectId(class_id)
         except InvalidId:
@@ -39,7 +40,7 @@ class ClassService:
             )
 
         try:
-            result = await classes_collection.find_one({"_id": object_id})
+            result = await self.collection.find_one({"_id": object_id})
             if not result:
                 logger.error(f"Class with Class ID {object_id} not found")
                 raise HTTPException(
@@ -54,18 +55,17 @@ class ClassService:
                 detail="An error occurred while getting the class information"
             )
     
-    @staticmethod
-    async def add_class(uni_class: Class) -> Class:  
+    async def add_class(self, uni_class: Class) -> Class:  
         class_dict = uni_class.model_dump()
 
-        existing_class = await classes_collection.find_one({"code": uni_class.code})
+        existing_class = await self.collection.find_one({"code": uni_class.code})
         if existing_class:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="A class with this code already exists"
             )
         try:
-            result = await classes_collection.insert_one(class_dict)
+            result = await self.collection.insert_one(class_dict)
             class_dict["id"] = str(result.inserted_id)
             return Class(**class_dict)
         except DuplicateKeyError:
@@ -80,8 +80,7 @@ class ClassService:
                 detail="An error occurred while inserting class"
             )
     
-    @staticmethod
-    async def update_class(class_id: str, class_update: ClassUpdate) -> Class:
+    async def update_class(self, class_id: str, class_update: ClassUpdate) -> Class:
         try: 
             object_id = ObjectId(class_id)
         except InvalidId:
@@ -99,7 +98,7 @@ class ClassService:
             )
         
         try:
-            result = await classes_collection.update_one(
+            result = await self.collection.update_one(
                 {"_id": object_id},
                 {"$set": update_data}
             )
@@ -109,7 +108,7 @@ class ClassService:
                     detail=f"Student with ID {object_id} not found"
                 )
             
-            updated_class = await classes_collection.find_one({"_id": object_id})
+            updated_class = await self.collection.find_one({"_id": object_id})
             if not updated_class:
                 raise HTTPException(
                     status=status.HTTP_404_NOT_FOUND,
@@ -124,8 +123,7 @@ class ClassService:
                 detail="An error occurred while updating class"
             )
         
-    @staticmethod
-    async def delete_class(class_id: str):
+    async def delete_class(self, class_id: str):
         try:
             object_id = ObjectId(class_id)
         except InvalidId:
@@ -135,7 +133,7 @@ class ClassService:
                 )
             
         try: 
-            result = await classes_collection.delete_one({"_id": object_id})
+            result = await self.collection.delete_one({"_id": object_id})
             if result.deleted_count == 0:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,

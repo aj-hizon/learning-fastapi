@@ -1,21 +1,22 @@
 import logging
 
 from src.models.student import Student, Students, StudentUpdate
-from src.db.mongodb import students_collection
-from fastapi import HTTPException, status
+from src.db.mongodb import get_students_collection
+from fastapi import HTTPException, status, Depends
 from pymongo.errors import PyMongoError
 from bson.errors import InvalidId
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
-
 class StudentService:
-    @staticmethod
-    async def add_student(student: Student) -> Student:
+    def __init__(self, collection=Depends(get_students_collection)):
+        self.collection = collection
+        
+    async def add_student(self, student: Student) -> Student:
         student_dict = student.model_dump()
 
-        existing_student = await students_collection.find_one({"email": student.email})
+        existing_student = await self.collection.find_one({"email": student.email})
         if existing_student:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -23,7 +24,7 @@ class StudentService:
             )
 
         try:
-            result = await students_collection.insert_one(student_dict)
+            result = await self.collection.insert_one(student_dict)
             student_dict["id"] = str(result.inserted_id)
             return Student(**student_dict)
         except PyMongoError as e:
@@ -33,10 +34,9 @@ class StudentService:
                 detail=f"An error occurred while inserting the student"
             )
     
-    @staticmethod
-    async def get_all_students(skip: int = 0, limit: int = 10) -> Students:
+    async def get_all_students(self, skip: int = 0, limit: int = 10) -> Students:
         try:
-            students = await students_collection.find().skip(skip).limit(limit).to_list(length=limit)
+            students = await self.collection.find().skip(skip).limit(limit).to_list(length=limit)
             if not students: 
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -50,8 +50,7 @@ class StudentService:
                 detail=f"An error occurred while fetching students"
             )
     
-    @staticmethod
-    async def get_student(student_id: str) -> Student:
+    async def get_student(self, student_id: str) -> Student:
         try:
             object_id = ObjectId(student_id)
         except InvalidId:
@@ -61,7 +60,7 @@ class StudentService:
             )
 
         try: 
-            result = await students_collection.find_one({"_id": object_id})
+            result = await self.collection.find_one({"_id": object_id})
             if not result:
                 logger.warning(f"Student with ID {student_id} not found")
                 raise HTTPException(
@@ -83,8 +82,8 @@ class StudentService:
                 detail="An unexpected error occurred"
             )
         
-    @staticmethod
     async def update_student(
+    self,
     student_id: str,
     student_update: StudentUpdate
     ) -> Student:
@@ -105,7 +104,7 @@ class StudentService:
             )
     
         try: 
-            result = await students_collection.update_one(
+            result = await self.collection.update_one(
                 {"_id": object_id},
                 {"$set": update_data}
             )
@@ -116,7 +115,7 @@ class StudentService:
                     detail=f"Student with ID {student_id} not found"
                 )
             
-            updated_student = await students_collection.find_one({"_id": object_id})
+            updated_student = await self.collection.find_one({"_id": object_id})
             if not updated_student:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -131,8 +130,7 @@ class StudentService:
                 detail="An error occurred while updating the student information"
             )
     
-    @staticmethod
-    async def delete_student(student_id: str):
+    async def delete_student(self, student_id: str):
         try: 
             object_id = ObjectId(student_id)
         except InvalidId:
@@ -142,7 +140,7 @@ class StudentService:
             )
         
         try:
-            result = await students_collection.delete_one({"_id": object_id})
+            result = await self.collection.delete_one({"_id": object_id})
             if result.deleted_count == 0:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
