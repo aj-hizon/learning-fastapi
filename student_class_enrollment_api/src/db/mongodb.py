@@ -1,7 +1,6 @@
 import os
 
-from fastapi import Depends
-import motor.motor_asyncio
+import motor.motor_asyncio  
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +9,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 DATABASE = os.getenv("DATABASE")
 STUDENTS_COLLECTION = os.getenv("STUDENTS_COLLECTION")
 CLASSES_COLLECTION = os.getenv("CLASSES_COLLECTION")
+USERS_COLLECTION = os.getenv("USERS_COLLECTION")
 
 if not all([MONGODB_URI, STUDENTS_COLLECTION, CLASSES_COLLECTION]):
     raise ValueError("One or more required environment variables are not set")
@@ -31,6 +31,7 @@ try:
     database = client[DATABASE]
     students_collection = database[STUDENTS_COLLECTION]
     classes_collection = database[CLASSES_COLLECTION]
+    users_collection = database[USERS_COLLECTION]
 except Exception as e:
     raise RuntimeError(f"Failed to connect to MongoDB: {str(e)}")
 
@@ -40,3 +41,6 @@ def get_students_collection():
 
 def get_classes_collection():
     return classes_collection
+
+def get_users_collection():
+    return users_collection
